@@ -38,6 +38,7 @@
   <script src="../scripts/common.js"></script>
 
   <script src="../scripts/readsome.js"></script>
+  <script src="../scripts/indexer.js"></script>
   <!--onload-->
   <script src="../scripts/label.js"></script>
   <!--<script src="../scripts/mtss.js"></script>-->
@@ -63,6 +64,8 @@
     <span id="icon-list">
       <span id="openFile_span"><img class="img pdf ecg" type="file" alt="Open File" altzhtw="開啟檔案" id="openFile"
           src="../image/icon/lite/openfile.png" width="50" height="50"></span>
+      <span id="openFolder_span" title="Open Folder"><img class="img pdf ecg" alt="Open Folder" altzhtw="開啟資料夾" id="openFolder"
+          src="../image/icon/lite/openfolder.svg" width="50" height="50"></span>
       <span id="MouseOperation_span"><img class="img VR MPR SEG" alt="Move & Zoom" altzhtw="平移與縮放" id="MouseOperation"
           src="../image/icon/lite/b_Pan.png" width="50" height="50"></span>
       <span id="b_Scroll_span"><img class="img MPR" alt="Scroll" altzhtw="捲動" id="b_Scroll"
@@ -222,6 +225,39 @@
               src="../image/icon/lite/b_Setting.png" width="50" height="50">
           </span>
       </span>
+      <span id="OnlyPatientParent" style="color:white; font-size:12px; display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+        <label for="OnlySelectedPatientToggle" style="cursor:pointer;">Only selected patient</label>
+        <input type="checkbox" id="OnlySelectedPatientToggle" />
+      </span>
+      <span id="AutoCloseOthersParent" style="color:white; font-size:12px; display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+        <label for="AutoCloseOthersToggle" style="cursor:pointer;">Auto close others</label>
+        <input type="checkbox" id="AutoCloseOthersToggle" checked />
+      </span>
+      <span id="CloseAllThumbsParent" style="color:white; font-size:12px; display:inline-flex; align-items:center; gap:4px; margin-left:8px;">
+        <button id="CloseAllThumbnailsBtn" title="Remove all items from thumbnails">Close All</button>
+      </span>
+      <span id="IndexParent">
+        <img class="img" loading="lazy" alt="Index" title="Index /dicoms" id="IndexButton" src="../image/icon/lite/openfolder.svg" width="50" height="50">
+        <div id="IndexDrawer" class="drawer" style="position:absolute;left: 0;white-space:nowrap;z-index: 120; min-width: 480px; max-height: 60vh; overflow: auto; display: none; background-color: black; color: white; padding: 8px;">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+            <label for="IndexBasePath" style="min-width:72px;">Base:</label>
+            <input id="IndexBasePath" type="text" placeholder="/dicoms/" style="flex:1; min-width:220px;" />
+            <button id="SaveIndexBase" title="Save base path">Save</button>
+            <button id="RunIndex" style="margin-left:8px;">Index</button>
+            <button id="UseServerIndex" title="Fetch server index">Use Server Index</button>
+            <button id="ClearIndex">Clear Cache</button>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <label for="IndexSearch" style="min-width:72px;">Search:</label>
+            <input id="IndexSearch" type="text" placeholder="Patient/Study/Series..." style="flex:1; min-width:220px;" />
+          </div>
+          <div id="IndexStatus" style="color:#ccc; font-size:12px; margin-bottom:8px;"></div>
+          <div id="IndexList"></div>
+        </div>
+      </span>
+      <span id="IndexSidebarToggleParent">
+        <img class="img" loading="lazy" alt="Index Sidebar" title="Toggle Index Sidebar" id="IndexSidebarToggle" src="../image/icon/lite/openfolder.svg" width="50" height="50">
+      </span>
       </div>
     </span>
     </span>
@@ -277,9 +313,22 @@
 
   <div class="form-group" id="form-group">
     <label class="control-label col-sm-1" for="wadoURL"><!--URL-->&nbsp;</label>
-    <div id="container" class="container">
+    <div id="container" class="container" style="position: relative; width: calc(100vw - 330px); overflow: hidden;">
       <div id="LeftPicture" style="overflow-y: auto;display: flex;flex-direction: column;position: absolute;z-index: 9;"
         width="100">
+      </div>
+      <div id="IndexSidebar" style="position:fixed; right: 0; top: 64px; bottom: 0; width: 320px; overflow:auto; background-color: rgba(12,12,16,0.92); color: #f1f1f1; z-index: 9; padding: 8px; box-shadow: -2px 0 8px rgba(0,0,0,0.4); border-left: 1px solid rgba(255,255,255,0.08); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;">
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+          <input id="IndexSidebarSearch" type="text" placeholder="Search..." style="flex:1; min-width:160px;">
+          <button id="IndexSidebarRefresh" title="Re-index">↻</button>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+          <button id="IndexExpandAll" title="Expand all">Expand all</button>
+          <button id="IndexCollapseAll" title="Collapse all">Collapse all</button>
+          <button id="IndexSidebarUseServer" title="Fetch server index">Use Server Index</button>
+        </div>
+        <div id="IndexSidebarStatus" style="color:#aab; font-size:12px; margin-bottom:8px;"></div>
+        <div id="IndexSidebarList"></div>
       </div>
       <div id="dicomStatusIndicator"
         style="position: fixed; left: 0px; bottom: 10px; min-width: 143px; max-width: 143px; height: auto; min-height: 30px; background-color: rgba(0,0,0,0.85); color: white; padding: 8px; text-align: left; font-size: 14px; z-index: 1000; display: none; border-radius: 4px; box-shadow: 0 0 10px rgba(0,0,0,0.5); pointer-events: none;">
@@ -294,3 +343,4 @@
 </body>
 
 </html>
+  <!-- Server index is fetched on demand with timeout; preloads removed to avoid console noise if absent. -->

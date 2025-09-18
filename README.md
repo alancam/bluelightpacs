@@ -2,7 +2,7 @@
   <div style="float: left;width: 15%;"><img src="https://raw.githubusercontent.com/cylab-tw/bluelight/master/bluelight/image/icon/black/BLLogoSmall.png" width="90px"></div>
   <div style="float: left;width: 85%;"><h1>BlueLight Web-based DICOM Viewer (BlueLight Viewer)</h1> 
 </div>
-<p><strong>Blue Light</strong> is a browser-based medical image viewer primarily maintained by the <a href="https://cylab.dicom.tw/">Imaging Informatics Labs</a>. It is a pure single-page application (SPA), lightweight, and uses only JavaScript and HTML5 technologies to deploy it on any HTTP server easily (just put it in the HTTP server). It supports not only opening local data but also connecting to medical image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>. It can display various image markups and annotations such as Annotation and Image Markup (AIM), DICOM-RT structure set (RTSS), DICOM Overlay, and DICOM Presentation State. It provides tools for medical image interpretation and 3D image reconstruction, e.g., Multiplanar Rreformation or Reconstruction (MPR) and Volume Rendering (VR).</p>
+<p><strong>Blue Light</strong> is a browser-based medical image viewer primarily maintained by the <a href="https://cylab.dicom.tw/">Imaging Informatics Labs</a>. It is a pure single-page application (SPA), lightweight, and uses only JavaScript and HTML5 technologies to deploy it on any HTTP server easily (just put it in the HTTP server). It supports not only opening local data but also connecting to medical image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>. It can display various image markups and annotations such as Annotation and Image Markup (AIM), DICOM-RT structure set (RTSS), DICOM Overlay, and DICOM Presentation State. It provides tools for medical image interpretation and 3D image reconstruction, e.g., Multiplanar Reformation or Reconstruction (MPR) and Volume Rendering (VR).</p>
 
 <a href="https://cylab-tw.github.io/bluelight/search/html/start.html"><strong>Live DEMO</strong></a>&ensp;&ensp;Short URL: https://blsearch.dicom.tw &ensp;&ensp;&ensp;
 <a href="https://cylab-tw.github.io/bluelight/bluelight/html/start.html"><strong>Online Viewer</strong></a>&ensp;&ensp;Short URL: https://bl.dicom.tw &ensp;&ensp;&ensp; 
@@ -65,6 +65,16 @@
 * hide/display markups and annotations
 * Export image: both DICOM and JPEG
 
+### Local Files
+- Open single/multiple files: Click `Open File` in the toolbar and select DICOM (`.dcm`, `.mht`) or images (`.jpg`, `.png`, `.webp`).
+- Open a folder: Click `Open Folder` to select a directory; BlueLight will index files recursively and populate the left panel. Click a thumbnail to navigate.
+- Drag and drop: Drop files or folders anywhere on the page to load. Directories are read recursively where supported.
+
+### Keyboard Shortcuts
+- Arrow Up/Down/Left/Right: scroll to previous/next image in series.
+- PageUp/PageDown: jump by ~10% of the series length backward/forward.
+- Home/End: jump to the first/last image in the series.
+
 ### Support the display of the kinds of markups and annotations
 * GSPS: DICOM Graphic Annotation
 * DICOM Overlay
@@ -72,10 +82,10 @@
 * Annotation and Image Markup (AIM)
 * DICOM SEG (Segmentation)
 * [LabelImg](https://github.com/tzutalin/labelImg)
-* Provide the function to convert the DICOM Overalys to a DICOM SEG object.
+* Provide the function to convert the DICOM Overlays to a DICOM SEG object.
 
 ## Plugins
-* Some advanced features are separated from the native parts of Bluelight to facilitate better performance. All supported functions are placed in folder `/scripts/plugin`. Using the [config](/bluelight/data/plugin.json) enable the selected plugins. If disableCatch is set as false, the plugin is enabled.
+* Some advanced features are separated from the native parts of BlueLight to facilitate better performance. All supported functions are placed in folder `/scripts/plugin`. Using the [config](/bluelight/data/plugin.json) enable the selected plugins. If disableCatch is set as false, the plugin is enabled.
 
 ```json
 {
@@ -125,7 +135,7 @@
 * DICOM-RT structure set (RTSS) - see [rtss.js](/bluelight/scripts/plugin/rtss.js)
 * DICOM SEG (Segmentation) - see [seg.js](/bluelight/scripts/plugin/seg.js)
   - **Download as DCMTK DICOM-XML**: only launch BlueLight
-  - **Download as DIOCM SEG**: It is integrated with [Raccoon.net](https://github.com/cylab-tw/raccoon). Please put the BlightLight on Raccoon.
+  - **Download as DICOM SEG**: It is integrated with [Raccoon.net](https://github.com/cylab-tw/raccoon). Please put the BlueLight on Raccoon.
 
 ### Plugin: General
 * Display DICOM TAG - see [tag.js](/bluelight/scripts/plugin/tag.js)

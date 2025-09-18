@@ -44,6 +44,55 @@ function html_onload() {
     fileElem.click();
   }
 
+  // Open a whole folder: recursively index and load
+  getByid("openFolder").onclick = function () {
+    if (this.enable == false) return;
+    var dirElem = document.createElement("input");
+    dirElem.setAttribute("type", "file");
+    // webkitdirectory is supported in Chromium-based browsers; directory is a hint for others
+    dirElem.setAttribute("webkitdirectory", "");
+    dirElem.setAttribute("directory", "");
+    dirElem.setAttribute("multiple", "multiple");
+
+    dirElem.onchange = function () {
+      const files = this.files || [];
+      for (let k = 0; k < files.length; k++) {
+        const f = files[k];
+        function basename(path) { return path.split('.').reverse()[0]; }
+        const fileExtension = ("" + basename(f.name)).toLowerCase();
+
+        const url = URL.createObjectURL(f);
+        if (fileExtension == "mht") wadorsLoader(url);
+        else if (fileExtension == "jpg" || fileExtension == "jpeg" || fileExtension == "png" || fileExtension == "webp") {
+          loadPicture(url);
+        } else {
+          let reader = new FileReader();
+          reader.readAsArrayBuffer(f);
+          reader.fileExtension = fileExtension;
+          reader.url = url;
+          ImageManager.NumOfPreLoadSops += 1;
+          reader.onloadend = function () {
+            var Sop = loadDicomDataSet(reader.result);
+            if (Sop) {
+              Sop.Image.url = this.url;
+              setAllSeriesCount();
+              ImageManager.preLoadSops.push({
+                dataSet: Sop.dataSet,
+                image: Sop.Image,
+                Sop: Sop,
+                SeriesInstanceUID: Sop.Image.SeriesInstanceUID,
+                Index: Sop.Image.NumberOfFrames | Sop.Image.InstanceNumber
+              });
+            }
+            ImageManager.NumOfPreLoadSops -= 1;
+            if (ImageManager.NumOfPreLoadSops == 0) ImageManager.loadPreLoadSops();
+          }
+        }
+      }
+    }
+    dirElem.click();
+  }
+
   //點到其他地方時，關閉抽屜
   getByid("container").addEventListener("mousedown", hideAllDrawer, false);
 
@@ -116,6 +165,33 @@ function html_onload() {
         if (item) addDirectory(item);
       }
     }
+  }
+
+  // Toggle: Only show thumbnails for selected patient
+  var onlyToggle = getByid("OnlySelectedPatientToggle");
+  if (onlyToggle) {
+    try { const v = localStorage.getItem('bl_toggle_onlySelected'); if (v !== null) onlyToggle.checked = v === '1'; } catch {}
+    // Apply initial state
+    try { showOnlySelectedPatient(onlyToggle.checked); } catch (ex) {}
+    onlyToggle.onchange = function () { try { localStorage.setItem('bl_toggle_onlySelected', this.checked ? '1' : '0'); showOnlySelectedPatient(this.checked); } catch (ex) { console.log(ex); } };
+  }
+
+  // Auto close others toggle is handled within gui.js checks, no handler needed here.
+
+  // Close All thumbnails
+  var closeAllBtn = getByid("CloseAllThumbnailsBtn");
+  if (closeAllBtn) {
+    closeAllBtn.onclick = function () {
+      try { getByid('LeftPicture').innerHTML = ''; } catch (ex) { console.log(ex); }
+      try { if (window.IndexRefreshHighlights) window.IndexRefreshHighlights(); } catch (ex2) {}
+    };
+  }
+
+  // Persist Auto close others toggle
+  var autoClose = getByid('AutoCloseOthersToggle');
+  if (autoClose) {
+    try { const v = localStorage.getItem('bl_toggle_autoClose'); if (v !== null) autoClose.checked = v === '1'; } catch {}
+    autoClose.onchange = function () { try { localStorage.setItem('bl_toggle_autoClose', this.checked ? '1':'0'); } catch {} };
   }
 
   getByid("downloadDcm").onclick = function () {

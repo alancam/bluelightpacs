@@ -119,7 +119,27 @@ function wadorsLoader(url, onlyload) {
                     resetViewport();
                     GetViewport().loadImgBySop(Sop);
                 }
-                else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+                else {
+                    try {
+                        var ds = Sop.Image.data;
+                        var qr = new QRLv(ds);
+                        var pid = ds.string(Tag.PatientID);
+                        if (qr.frames) {
+                            if (!leftLayout.findSop(ds.string(Tag.SOPInstanceUID))) {
+                                leftLayout.setImg2Left(qr, pid);
+                                leftLayout.appendCanvasBySop(ds.string(Tag.SOPInstanceUID), Sop.Image, Sop.Image.getPixelData());
+                                leftLayout.refleshMarkWithSeries(ds.string(Tag.SeriesInstanceUID));
+                            } else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+                        } else {
+                            if (!leftLayout.findSeries(ds.string(Tag.SeriesInstanceUID))) {
+                                leftLayout.setImg2Left(qr, pid);
+                                leftLayout.appendCanvasBySeries(ds.string(Tag.SeriesInstanceUID), Sop.Image, Sop.Image.getPixelData());
+                                leftLayout.refleshMarkWithSeries(ds.string(Tag.SeriesInstanceUID));
+                            } else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+                        }
+                    } catch (ex) { leftLayout.refreshNumberOfFramesOrSops(Sop.Image); }
+                    try { if (window.IndexRefreshHighlights) window.IndexRefreshHighlights(); } catch (ex2) {}
+                }
             }
             // Removed hideDicomStatus() call from here
         })
@@ -541,7 +561,27 @@ function loadDICOMFromUrl(url, loadimage = true) {
                 resetViewport();
                 GetViewport().loadImgBySop(Sop);
             }
-            else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+            else {
+                // Ensure series or sop thumbnail exists when batch loading
+                try {
+                    var ds = Sop.Image.data;
+                    var qr = new QRLv(ds);
+                    var pid = ds.string(Tag.PatientID);
+                    if (qr.frames) {
+                        if (!leftLayout.findSop(ds.string(Tag.SOPInstanceUID))) {
+                            leftLayout.setImg2Left(qr, pid);
+                            leftLayout.appendCanvasBySop(ds.string(Tag.SOPInstanceUID), Sop.Image, Sop.Image.getPixelData());
+                            leftLayout.refleshMarkWithSeries(ds.string(Tag.SeriesInstanceUID));
+                        } else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+                    } else {
+                        if (!leftLayout.findSeries(ds.string(Tag.SeriesInstanceUID))) {
+                            leftLayout.setImg2Left(qr, pid);
+                            leftLayout.appendCanvasBySeries(ds.string(Tag.SeriesInstanceUID), Sop.Image, Sop.Image.getPixelData());
+                            leftLayout.refleshMarkWithSeries(ds.string(Tag.SeriesInstanceUID));
+                        } else leftLayout.refreshNumberOfFramesOrSops(Sop.Image);
+                    }
+                } catch (ex) { leftLayout.refreshNumberOfFramesOrSops(Sop.Image); }
+            }
             // Removed hideDicomStatus() call from here
         })
         .catch(function (error) {

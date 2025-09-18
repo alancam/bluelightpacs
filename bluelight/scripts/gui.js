@@ -91,10 +91,22 @@ class BlueLightPage {
 
 function setImageObjToLeft(Sop) {
     var imageObj = Sop.Image, dataSet = Sop.Image.data;
+    // Auto close other patients if toggle is enabled
+    try {
+        var autoClose = document.getElementById('AutoCloseOthersToggle');
+        if (autoClose && autoClose.checked) {
+            var pid = dataSet.string(Tag.PatientID);
+            var patients = getClass('OutLeftImg');
+            for (var p of patients) {
+                if (p.PatientId != pid) try { p.parentNode.removeChild(p); } catch (ex) { }
+            }
+        }
+    } catch (ex) { }
     leftLayout.setImg2Left(new QRLv(dataSet), dataSet.string(Tag.PatientID));
     if (Sop.type == "frame") leftLayout.appendCanvasBySop(dataSet.string(Tag.SOPInstanceUID), imageObj, imageObj.getPixelData());
     else leftLayout.appendCanvasBySeries(dataSet.string(Tag.SeriesInstanceUID), imageObj, imageObj.getPixelData());
     leftLayout.refleshMarkWithSeries(dataSet.string(Tag.SeriesInstanceUID));
+    try { if (window.IndexRefreshHighlights) window.IndexRefreshHighlights(); } catch (ex) {}
 }
 
 class LeftLayout {
@@ -153,6 +165,34 @@ class LeftLayout {
                 if (elem.PatientId == patientID) Patient_div = elem;
         }
 
+        // Ensure patient header label exists
+        if (!Patient_div.header) {
+            var header = createElem("DIV", null, "LeftPatientHeader");
+            header.style.color = 'white';
+            header.style.fontWeight = 'bold';
+            header.style.padding = '4px 2px';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            var titleSpan = createElem('SPAN');
+            titleSpan.innerText = (patientID || 'Unknown');
+            header.appendChild(titleSpan);
+            var clearBtn = createElem('button');
+            clearBtn.innerText = 'Clear';
+            clearBtn.title = 'Remove all studies for this patient';
+            clearBtn.style.background = 'transparent';
+            clearBtn.style.color = '#ccc';
+            clearBtn.style.border = '1px solid #555';
+            clearBtn.style.borderRadius = '3px';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.onclick = function(e){ e.stopPropagation(); try { Patient_div.parentNode.removeChild(Patient_div); } catch(ex){} };
+            header.appendChild(clearBtn);
+            Patient_div.insertBefore(header, Patient_div.firstChild);
+            Patient_div.header = header;
+        } else {
+            Patient_div.header.firstChild.innerText = (patientID || 'Unknown');
+        }
+
         if (!QRLevel.frames && this.findSeries(QRLevel.series)) return;
         if (QRLevel.frames && this.findSop(QRLevel.sop)) return;
 
@@ -161,6 +201,35 @@ class LeftLayout {
         series_div.series = QRLevel.series;
         if (QRLevel.frames) series_div.sop = QRLevel.sop;
         series_div.style.touchAction = 'none';
+
+        // Study/Series label above thumbnail
+        var titleDiv = createElem("DIV", null, "LeftSeriesHeader");
+        titleDiv.style.color = '#ddd';
+        titleDiv.style.fontSize = '12px';
+        titleDiv.style.padding = '2px 2px';
+        titleDiv.style.display = 'flex';
+        titleDiv.style.alignItems = 'center';
+        titleDiv.style.justifyContent = 'space-between';
+        try {
+            var series = ImageManager.findSeries(QRLevel.series);
+            var sop0 = series && series.Sop && series.Sop[0];
+            var ds = sop0 && sop0.Image && sop0.Image.data;
+            var studyDesc = ds ? ds.string(Tag.StudyDescription) : '';
+            var seriesDesc = ds ? ds.string(Tag.SeriesDescription) : '';
+            titleDiv.innerText = (studyDesc || 'Study') + ' / ' + (seriesDesc || 'Series');
+        } catch (ex) { titleDiv.innerText = 'Study / Series'; }
+
+        // Close button for series
+        var closeBtn = createElem('button');
+        closeBtn.innerText = '×';
+        closeBtn.title = 'Close series';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.color = '#aaa';
+        closeBtn.style.border = 'none';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.marginLeft = '8px';
+        closeBtn.onclick = function(e){ e.stopPropagation(); try { series_div.parentNode.removeChild(series_div); } catch(ex){} try { if (window.IndexRefreshHighlights) window.IndexRefreshHighlights(); } catch (ex2) {} };
+        titleDiv.appendChild(closeBtn);
 
         var ImgDiv = createElem("DIV", null, "LeftImgDiv");
         ImgDiv.series = QRLevel.series;
@@ -181,6 +250,7 @@ class LeftLayout {
             else return this.getElementsByClassName("LeftCanvas")[0];
         }
 
+        series_div.appendChild(titleDiv);
         series_div.appendChild(ImgDiv);
         series_div.ImgDiv = ImgDiv;
         //series_div.appendChild(smallDiv);
@@ -227,9 +297,18 @@ class LeftLayout {
         else var series_div = this.findSeries(image.SeriesInstanceUID);
         if (!series_div) return;
 
-        if (image.NumberOfFrames > 1) series_div.series_label.innerText = htmlEntities("" + image.NumberOfFrames);
-        else if (image.haveSameInstanceNumber) series_div.series_label.innerText = "";
-        else series_div.series_label.innerText = "" + htmlEntities(ImageManager.findSeries(image.SeriesInstanceUID).Sop.length);
+        if (image.NumberOfFrames > 1) {
+            series_div.series_label.innerText = htmlEntities("" + image.NumberOfFrames + ' frames');
+        }
+        else if (image.haveSameInstanceNumber) {
+            series_div.series_label.innerText = "";
+        }
+        else {
+            try {
+                var count = ImageManager.findSeries(image.SeriesInstanceUID).Sop.length;
+                series_div.series_label.innerText = htmlEntities("" + count + ' inst');
+            } catch (ex) { series_div.series_label.innerText = ""; }
+        }
     }
 
     refleshMarkWithSeries(series) {
@@ -423,4 +502,19 @@ function SetTable(row0, col0) {
     }
 
     refleshGUI();
+}
+
+// Show only thumbnails belonging to the current selected patient's ID
+function showOnlySelectedPatient(flag) {
+    try {
+        var pid = null;
+        if (GetViewport() && GetViewport().Sop && GetViewport().Sop.Image && GetViewport().Sop.Image.data)
+            pid = GetViewport().Sop.Image.data.string(Tag.PatientID);
+        var patients = getClass('OutLeftImg');
+        for (var p of patients) {
+            if (!flag) { p.style.display = ''; continue; }
+            if (p.PatientId == pid) p.style.display = '';
+            else p.style.display = 'none';
+        }
+    } catch (ex) { console.log(ex); }
 }
